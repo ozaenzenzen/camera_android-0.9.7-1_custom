@@ -26,6 +26,7 @@ import io.flutter.plugins.camera.features.resolution.ResolutionPreset;
 import io.flutter.view.TextureRegistry;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 
 final class MethodCallHandlerImpl implements MethodChannel.MethodCallHandler {
   private final Activity activity;
@@ -49,6 +50,10 @@ final class MethodCallHandlerImpl implements MethodChannel.MethodCallHandler {
     this.permissionsRegistry = permissionsAdder;
     this.textureRegistry = textureRegistry;
 
+    // methodChannel = new MethodChannel(messenger, "plugins.flutter.io/camera_android");
+    // imageStreamChannel =
+    //     new EventChannel(messenger, "plugins.flutter.io/camera_android/imageStream");
+    // methodChannel.setMethodCallHandler(this);
     methodChannel = new MethodChannel(messenger, "plugins.flutter.io/camera");
     imageStreamChannel = new EventChannel(messenger, "plugins.flutter.io/camera/imageStream");
     methodChannel.setMethodCallHandler(this);
@@ -117,7 +122,9 @@ final class MethodCallHandlerImpl implements MethodChannel.MethodCallHandler {
         }
       case "startVideoRecording":
         {
-          camera.startVideoRecording(result);
+          camera.startVideoRecording(
+              result,
+              Objects.equals(call.argument("enableStream"), true) ? imageStreamChannel : null);
           break;
         }
       case "stopVideoRecording":
@@ -348,6 +355,18 @@ final class MethodCallHandlerImpl implements MethodChannel.MethodCallHandler {
         {
           camera.resumePreview();
           result.success(null);
+          break;
+        }
+      case "setDescriptionWhileRecording":
+        {
+          try {
+            String cameraName = call.argument("cameraName");
+            CameraProperties cameraProperties =
+                new CameraPropertiesImpl(cameraName, CameraUtils.getCameraManager(activity));
+            camera.setDescriptionWhileRecording(result, cameraProperties);
+          } catch (Exception e) {
+            handleException(e, result);
+          }
           break;
         }
       case "dispose":
